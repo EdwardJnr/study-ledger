@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Study Ledger</title>
+<meta name="description" content="Track study programmes week by week: milestones, progress and study hours.">
+<meta name="theme-color" content="#0F4C3A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Study Ledger">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap">
+<style>
+/* Layout: single mobile column — ledger list of programmes, drill into one; forms rise as bottom sheets */
+:root {
+  --bg: #EEF3F0; --surface: #FFFFFF; --ink: #0D1F19; --muted: #5A6B65; --line: #D6E0DB;
+  --brand: #0F4C3A; --primary: #0F4C3A; --on-primary: #FFFFFF; --accent: #2FD79A; --accent-soft: #DDF5EA;
+  --track: #DCE6E1; --warn: #B26A00; --danger: #B3261E; --scrim: rgba(8, 20, 16, 0.42);
+  --bar: #0F4C3A;
+  --display: "Fraunces", Georgia, "Times New Roman", serif;
+  --body: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --r: 14px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #09130F; --surface: #102019; --ink: #E5EFEA; --muted: #92A69F; --line: #21352D;
+    --brand: #8FE9C5; --primary: #2FD79A; --on-primary: #06231A; --accent: #2FD79A;
+    --accent-soft: #14382B; --track: #1C2F28; --warn: #E8A33D; --danger: #F2867F;
+    --scrim: rgba(0, 0, 0, 0.6); --bar: #09130F; color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-top: calc(env(safe-area-inset-top, 0px) + 12px);
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 96px);
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); background: var(--bar); z-index: 10; }
+[hidden] { display: none !important; }
+.wrap { max-width: 640px; margin: 0 auto; display: grid; gap: 18px; }
+h1, h2, h3 { margin: 0; text-wrap: balance; }
+button, input, select, textarea { font: inherit; color: inherit; }
+input, select, textarea { font-size: 16px; } /* stops iOS zooming into fields */
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+.label { font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.muted { color: var(--muted); }
+
+.top { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding-top: 8px; }
+.word { font-family: var(--display); font-weight: 600; font-size: 30px; color: var(--brand); letter-spacing: -0.01em; line-height: 1; }
+.top .meta { text-align: right; font-size: 13px; color: var(--muted); }
+.top .meta b { display: block; color: var(--ink); font-size: 17px; font-weight: 600; }
+
+.btn { border: 0; border-radius: 999px; padding: 11px 18px; font-weight: 600; background: var(--primary); color: var(--on-primary); }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn.small { padding: 7px 13px; font-size: 13.5px; }
+.btn.danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
+.linkbtn { background: none; border: 0; padding: 0; color: var(--muted); font-size: 14px; display: inline-flex; gap: 6px; align-items: center; }
+
+.list { display: grid; gap: 12px; }
+.prog { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; display: grid; gap: 12px; text-align: left; width: 100%; }
+.prog-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.prog-head > div { min-width: 0; }
+.prog h2 { font-family: var(--display); font-weight: 600; font-size: 20px; line-height: 1.2; }
+.prog .sub { font-size: 13px; color: var(--muted); margin-top: 3px; }
+.chip { font-size: 11.5px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; padding: 4px 9px; border-radius: 999px; white-space: nowrap; border: 1px solid var(--line); color: var(--muted); }
+.chip.active { background: var(--accent-soft); border-color: transparent; color: var(--brand); }
+.chip.paused { color: var(--warn); border-color: var(--warn); }
+.chip.done { background: var(--primary); color: var(--on-primary); border-color: transparent; }
+.bar { height: 8px; background: var(--track); border-radius: 999px; overflow: hidden; }
+.bar > i { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
+.facts { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); }
+.facts b { color: var(--ink); font-weight: 600; }
+.next { font-size: 14px; border-top: 1px solid var(--line); padding-top: 10px; display: flex; gap: 8px; }
+.next .label { flex: none; padding-top: 2px; }
+.next span:last-child { min-width: 0; }
+
+.d-head { display: grid; gap: 8px; }
+.d-head h1 { font-family: var(--display); font-weight: 600; font-size: 28px; line-height: 1.15; }
+.d-head a { color: var(--brand); }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.stat { background: var(--surface); padding: 12px 10px; display: grid; gap: 2px; }
+.stat b { font-size: 20px; font-weight: 600; }
+@media (max-width: 420px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; display: grid; gap: 14px; }
+.panel-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.panel-head h3 { font-size: 16px; }
+.weeks { display: grid; grid-template-columns: repeat(auto-fill, minmax(34px, 1fr)); gap: 6px; }
+.wk { aspect-ratio: 1; max-width: 100%; border-radius: 8px; background: var(--track); display: grid; place-items: center; font-size: 12px; color: var(--muted); border: 2px solid transparent; }
+.wk.part { background: linear-gradient(to top, var(--accent) 50%, var(--track) 50%); color: var(--ink); }
+.wk.full { background: var(--accent); color: var(--on-primary); font-weight: 600; }
+.wk.now { border-color: var(--ink); color: var(--ink); font-weight: 600; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+
+.phase { display: grid; gap: 2px; }
+.phase + .phase { border-top: 1px solid var(--line); padding-top: 10px; }
+.phase-name { font-size: 13px; font-weight: 600; color: var(--muted); display: flex; justify-content: space-between; padding-bottom: 4px; }
+.ms { display: grid; grid-template-columns: 26px 1fr auto; gap: 10px; align-items: start; padding: 8px 0; }
+.ms input { width: 22px; height: 22px; margin: 0; accent-color: var(--primary); }
+.ms label { min-width: 0; cursor: pointer; }
+.ms .wkl { font-size: 12px; color: var(--muted); display: block; }
+.ms.is-done label .t { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--line); }
+.x { background: none; border: 0; color: var(--muted); font-size: 20px; line-height: 1; padding: 2px 8px; border-radius: 6px; }
+.ms.now-week { background: var(--accent-soft); margin: 0 -8px; padding: 8px; border-radius: 10px; }
+
+.log-row { display: grid; grid-template-columns: 64px 1fr auto; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); font-size: 14px; align-items: baseline; }
+.log-row:first-child { border-top: 0; }
+.log-row .note { min-width: 0; overflow-wrap: anywhere; }
+.empty { color: var(--muted); font-size: 14px; margin: 0; }
+.confirm { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 14px; }
+
+.blank { background: var(--surface); border: 1px dashed var(--line); border-radius: var(--r); padding: 28px 20px; text-align: center; display: grid; gap: 10px; justify-items: center; }
+.blank h2 { font-family: var(--display); font-size: 22px; }
+.blank p { margin: 0; }
+
+.tools { display: grid; gap: 10px; font-size: 14px; color: var(--muted); }
+.tools .row { display: flex; gap: 10px; flex-wrap: wrap; }
+details.help summary { cursor: pointer; color: var(--ink); font-weight: 600; }
+details.help ol { padding-left: 20px; margin: 8px 0 0; display: grid; gap: 4px; }
+
+.fab { position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 6px 20px rgba(0,0,0,0.18); z-index: 5; }
+
+.scrim { position: fixed; inset: 0; background: var(--scrim); z-index: 20; display: flex; align-items: flex-end; justify-content: center; }
+.sheet { background: var(--surface); width: 100%; max-width: 640px; border-radius: 20px 20px 0 0; max-height: 88vh; overflow-y: auto;
+  padding: 20px max(18px, env(safe-area-inset-right, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) max(18px, env(safe-area-inset-left, 0px));
+  display: grid; gap: 14px; }
+.sheet h2 { font-family: var(--display); font-weight: 600; font-size: 22px; }
+.field { display: grid; gap: 6px; }
+.field > span { font-size: 13px; font-weight: 600; }
+.field small { color: var(--muted); font-size: 12.5px; }
+.field input, .field select, .field textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
+.field textarea { min-height: 120px; resize: vertical; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.row2 > * { min-width: 0; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chips button { border: 1px solid var(--line); background: var(--bg); border-radius: 999px; padding: 7px 13px; font-size: 14px; }
+.chips button[aria-pressed="true"] { background: var(--primary); color: var(--on-primary); border-color: transparent; }
+.actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+.err { color: var(--danger); font-size: 13.5px; margin: 0; }
+
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(84px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: 14px; z-index: 30; max-width: calc(100% - 32px); }
+@media (prefers-reduced-motion: no-preference) {
+  .sheet { animation: rise 0.22s ease-out; }
+  @keyframes rise { from { transform: translateY(24px); opacity: 0.6; } to { transform: none; opacity: 1; } }
+  .bar > i { transition: width 0.3s ease; }
+}
+</style>
+</head>
+<body>
+<div class="wrap" id="main" aria-live="polite"></div>
+<div id="sheet-root"></div>
+<div id="toast-root"></div>
+<input type="file" id="import-file" accept="application/json,.json" hidden>
+
+<script>
+(() => {
+  const KEY = 'study-ledger-v1';
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const STATUS = { active: 'Active', paused: 'Paused', done: 'Completed' };
+  const main = document.getElementById('main');
+  const sheetRoot = document.getElementById('sheet-root');
+  const isStandalone = window.navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const pad = n => String(n).padStart(2, '0');
+  const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  const today = () => iso(new Date());
+  const dayNum = s => Date.parse(s + 'T00:00:00') / 864e5;
+  const fmtDate = s => { if (!s) return ''; const [y, m, d] = s.split('-').map(Number); return d + ' ' + MONTHS[m - 1] + ' ' + y; };
+  const fmtShort = s => { if (!s) return ''; const [, m, d] = s.split('-').map(Number); return d + ' ' + MONTHS[m - 1]; };
+  const hrs = min => { const h = min / 60; return (h % 1 === 0 ? h.toFixed(0) : h.toFixed(1)) + ' h'; };
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+  /* ---------- starting data, used only on first open ---------- */
+  const SEED = () => ({
+    programmes: [
+      { id: 'ai-automation-consultant', name: 'AI Automation Consultant', provider: '12-week study plan',
+        url: 'https://claude.ai/artifact/MPxoPU9EJV7zWSEY9nyk7b', start: '2026-10-26', weeks: 12, status: 'active', created: '2026-10-26T20:20:00Z',
+        phases: [{ name: 'Foundations', from: 1, to: 4 }, { name: 'AI and agents', from: 5, to: 8 }, { name: 'Clients and offer', from: 9, to: 12 }],
+        milestones: [
+          'n8n running locally; three processes mapped with hours per month',
+          'Workflow 1 (lead capture) live in testing',
+          'Two public APIs called by hand from n8n',
+          'Workflow 2 (weekly report) running on schedule',
+          'Workflow 3 (enquiry triage) sorting ten test enquiries correctly',
+          'Triage upgraded to an agent with a price-list tool',
+          'Workflow 4 (repurposing) with a working error branch',
+          'Best workflow self-hosted on a VPS; Workflow 5 built; all five documented',
+          'Two pilot clients agreed',
+          'Audits delivered; one workflow signed off per client',
+          'Client workflows live for seven days unattended',
+          'Two case studies published; audit, build and retainer prices set'
+        ].map((text, i) => ({ id: 'm' + pad(i + 1), week: i + 1, text, done: false, order: i })) },
+      { id: 'ga4-certification', name: 'Google Analytics 4 Certification', provider: 'Google Skillshop', url: '',
+        start: '2026-10-01', weeks: 0, status: 'active', created: '2026-10-01T08:00:00Z', phases: [],
+        milestones: ['Get Started with GA4', 'Dive Deeper Into GA4 Data and Reports', 'Manage GA4 Data', 'Use GA4 with Other Tools', 'GA4 Certification exam']
+          .map((text, i) => ({ id: 'g' + (i + 1), week: null, text, done: i === 0, doneAt: i === 0 ? '2026-10-01' : null, order: i })) }
+    ],
+    logs: []
+  });
+
+  /* ---------- storage on this phone ---------- */
+  let storageOk = true;
+  function load() {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (raw) { const d = JSON.parse(raw); if (d && Array.isArray(d.programmes)) return { programmes: d.programmes, logs: Array.isArray(d.logs) ? d.logs : [] }; }
+      const seed = SEED(); localStorage.setItem(KEY, JSON.stringify(seed)); return seed;
+    } catch (_) { storageOk = false; return SEED(); }
+  }
+  const data = load();
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify({ programmes: data.programmes, logs: data.logs, savedAt: new Date().toISOString() })); }
+    catch (_) { storageOk = false; toast('This change could not be saved on the phone. Export a backup now.'); }
+  }
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+
+  const state = { view: 'home', pid: null, confirm: null };
+
+  /* ---------- helpers ---------- */
+  function weekInfo(p) {
+    if (!p.weeks || !p.start) return null;
+    const d = Math.round(dayNum(today()) - dayNum(p.start));
+    if (d < 0) return { before: -d };
+    const w = Math.floor(d / 7) + 1;
+    return { week: Math.min(p.weeks, w), over: w > p.weeks };
+  }
+  function mondayISO() { const d = new Date(); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return iso(d); }
+  const msOf = p => Array.isArray(p.milestones) ? p.milestones : [];
+  const doneCount = p => msOf(p).filter(m => m.done).length;
+  const sortedLogs = () => [...data.logs].sort((a, b) => b.date.localeCompare(a.date) || String(b.created || '').localeCompare(String(a.created || '')));
+  const logsOf = id => sortedLogs().filter(l => l.pid === id);
+  const minutesOf = id => data.logs.filter(l => l.pid === id).reduce((a, l) => a + (Number(l.minutes) || 0), 0);
+  const nextMilestone = p => msOf(p).filter(m => !m.done).sort((a, b) => (a.week ?? 999) - (b.week ?? 999) || (a.order ?? 0) - (b.order ?? 0))[0];
+
+  /* ---------- render ---------- */
+  function header() {
+    const mon = mondayISO();
+    const wk = data.logs.filter(l => l.date >= mon).reduce((a, l) => a + (Number(l.minutes) || 0), 0);
+    return `<header class="top"><div class="word">Study Ledger</div>
+      <div class="meta"><span class="label">Studied this week</span><b class="num">${hrs(wk)}</b></div></header>`;
+  }
+
+  function progCard(p) {
+    const total = msOf(p).length, done = doneCount(p), pct = total ? Math.round(done / total * 100) : 0;
+    const wi = weekInfo(p), nm = nextMilestone(p), st = p.status || 'active';
+    const when = !wi ? 'Self-paced' : wi.before ? `Starts in ${wi.before} day${wi.before === 1 ? '' : 's'}` : `Week ${wi.week} of ${p.weeks}${wi.over ? ' (past end)' : ''}`;
+    return `<button class="prog" data-act="open" data-id="${esc(p.id)}">
+      <div class="prog-head"><div><h2>${esc(p.name)}</h2><div class="sub">${esc(p.provider || '')}</div></div>
+      <span class="chip ${st}">${STATUS[st] || 'Active'}</span></div>
+      <div class="bar" role="img" aria-label="${pct}% of milestones done"><i style="width:${pct}%"></i></div>
+      <div class="facts num"><span><b>${pct}%</b> · ${done}/${total} milestones</span><span><b>${esc(when)}</b></span><span><b>${hrs(minutesOf(p.id))}</b> logged</span></div>
+      ${nm ? `<div class="next"><span class="label">Next</span><span>${nm.week ? `<span class="muted">Wk ${nm.week} · </span>` : ''}${esc(nm.text)}</span></div>` : total ? `<div class="next"><span class="label">Next</span><span>All milestones complete</span></div>` : ''}
+    </button>`;
+  }
+
+  function tools() {
+    return `<section class="tools">
+      ${!isStandalone ? `<details class="help" open><summary>Install on your iPhone</summary><ol>
+        <li>Tap the Share icon (square with an arrow). In Chrome it sits at the right of the address bar.</li>
+        <li>Scroll down and tap <b>Add to Home Screen</b>, then <b>Add</b>.</li>
+        <li>Open Study Ledger from its new icon. It runs full screen and works offline.</li></ol></details>` : ''}
+      ${!storageOk ? `<p class="err">This browser is blocking storage, so changes will not be kept. Open the app from its home-screen icon.</p>` : ''}
+      <div><span class="label">Backup</span></div>
+      <div class="row"><button class="btn ghost small" data-act="export">Export backup</button><button class="btn ghost small" data-act="import">Restore from backup</button></div>
+      <span>Your progress lives on this phone only. Export a backup now and then, and save it to Files or iCloud Drive.</span>
+    </section>`;
+  }
+
+  function renderHome() {
+    let body;
+    if (!data.programmes.length) {
+      body = `<div class="blank"><h2>No programmes yet</h2><p class="muted">Add a course or study plan with its milestones, then tick them off and log your study time.</p><button class="btn" data-act="new">Add your first programme</button></div>`;
+    } else {
+      const order = { active: 0, paused: 1, done: 2 };
+      const ps = [...data.programmes].sort((a, b) => (order[a.status || 'active'] - order[b.status || 'active']) || String(a.created || '').localeCompare(String(b.created || '')));
+      body = `<div class="list">${ps.map(progCard).join('')}</div>`;
+    }
+    main.innerHTML = header() + body + tools() + (data.programmes.length ? `<button class="btn fab" data-act="new">+ New programme</button>` : '');
+  }
+
+  function renderDetail() {
+    const p = data.programmes.find(x => x.id === state.pid);
+    if (!p) { state.view = 'home'; return renderHome(); }
+    const ms = msOf(p), total = ms.length, done = doneCount(p), pct = total ? Math.round(done / total * 100) : 0;
+    const wi = weekInfo(p), st = p.status || 'active', logs = logsOf(p.id);
+    const curWeek = wi && wi.week && !wi.before ? wi.week : null;
+    const whenStat = !wi ? '—' : wi.before ? `in ${wi.before}d` : `${wi.week}/${p.weeks}`;
+
+    let weeks = '';
+    if (p.weeks) {
+      const cells = [];
+      for (let w = 1; w <= p.weeks; w++) {
+        const inW = ms.filter(m => m.week === w), d = inW.filter(m => m.done).length;
+        const cls = [inW.length && d === inW.length ? 'full' : d ? 'part' : '', w === curWeek ? 'now' : ''].join(' ');
+        cells.push(`<div class="wk ${cls}" title="Week ${w}: ${d}/${inW.length} done">${w}</div>`);
+      }
+      weeks = `<section class="panel"><div class="panel-head"><h3>Weeks</h3><span class="muted num" style="font-size:13px">Started ${fmtDate(p.start)}</span></div>
+        <div class="weeks num">${cells.join('')}</div>
+        <div class="legend"><span><i style="background:var(--accent)"></i>All done</span><span><i style="background:linear-gradient(to top,var(--accent) 50%,var(--track) 50%)"></i>Partly done</span><span><i style="border:2px solid var(--ink)"></i>This week</span></div></section>`;
+    }
+
+    const phases = Array.isArray(p.phases) && p.phases.length ? p.phases : [{ name: '', from: 1, to: 9999 }];
+    const sorted = [...ms].sort((a, b) => (a.week ?? 999) - (b.week ?? 999) || (a.order ?? 0) - (b.order ?? 0));
+    const used = new Set();
+    const groups = phases.map((ph, i) => {
+      const items = sorted.filter(m => !used.has(m.id) && (m.week == null ? i === phases.length - 1 : m.week >= ph.from && m.week <= ph.to));
+      items.forEach(m => used.add(m.id));
+      return { ph, items };
+    });
+    const leftovers = sorted.filter(m => !used.has(m.id));
+    if (leftovers.length) groups.push({ ph: { name: 'Other' }, items: leftovers });
+
+    const msRow = m => {
+      const confirming = state.confirm === 'ms:' + m.id;
+      const sub = m.week ? `Week ${m.week}${m.done && m.doneAt ? ' · done ' + fmtShort(m.doneAt) : ''}` : (m.done && m.doneAt ? `Done ${fmtShort(m.doneAt)}` : '');
+      return `<div class="ms ${m.done ? 'is-done' : ''} ${m.week && m.week === curWeek && !m.done ? 'now-week' : ''}">
+        <input type="checkbox" id="m-${esc(m.id)}" data-act="tick" data-mid="${esc(m.id)}" ${m.done ? 'checked' : ''}>
+        <label for="m-${esc(m.id)}">${sub ? `<span class="wkl num">${sub}</span>` : ''}<span class="t">${esc(m.text)}</span></label>
+        ${confirming
+          ? `<span class="confirm"><button class="btn danger small" data-act="ms-del" data-mid="${esc(m.id)}">Remove</button><button class="linkbtn" data-act="cancel">Keep</button></span>`
+          : `<button class="x" aria-label="Remove milestone" data-act="ms-ask" data-mid="${esc(m.id)}">×</button>`}
+      </div>`;
+    };
+    const msHtml = total ? groups.filter(g => g.items.length).map(g => {
+      const range = g.ph.from && g.ph.to && g.ph.to < 9999 ? `Weeks ${g.ph.from}–${g.ph.to}` : '';
+      const dn = g.items.filter(m => m.done).length;
+      return `<div class="phase">${g.ph.name ? `<div class="phase-name"><span>${esc(g.ph.name)}${range ? ' · ' + range : ''}</span><span class="num">${dn}/${g.items.length}</span></div>` : ''}${g.items.map(msRow).join('')}</div>`;
+    }).join('') : `<p class="empty">No milestones yet. Add the checkpoints that mark real progress.</p>`;
+
+    const logHtml = logs.length ? `<div>${logs.slice(0, 50).map(l => {
+      const c = state.confirm === 'log:' + l.id;
+      return `<div class="log-row num"><span>${fmtShort(l.date)}</span><span class="note">${esc(l.note || '')}</span>
+        <span>${c ? `<span class="confirm"><button class="btn danger small" data-act="log-del" data-lid="${esc(l.id)}">Delete</button><button class="linkbtn" data-act="cancel">Keep</button></span>`
+          : `<b>${hrs(Number(l.minutes) || 0)}</b><button class="x" aria-label="Delete session" data-act="log-ask" data-lid="${esc(l.id)}">×</button>`}</span></div>`;
+    }).join('')}</div>` : `<p class="empty">No sessions logged yet. Log each sitting to see where your hours go.</p>`;
+
+    main.innerHTML = header() + `
+      <div><button class="linkbtn" data-act="home">← All programmes</button></div>
+      <section class="d-head">
+        <h1>${esc(p.name)}</h1>
+        <div class="muted">${esc(p.provider || '')}${p.url ? ` · <a href="${esc(p.url)}" target="_blank" rel="noopener">Course link</a>` : ''}</div>
+        <label class="field" style="max-width:220px"><span class="label">Status</span>
+          <select id="status-select" data-act="status">${Object.entries(STATUS).map(([k, v]) => `<option value="${k}" ${k === st ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
+      </section>
+      <div class="stats num">
+        <div class="stat"><span class="label">Done</span><b>${pct}%</b></div>
+        <div class="stat"><span class="label">Week</span><b>${whenStat}</b></div>
+        <div class="stat"><span class="label">Logged</span><b>${hrs(minutesOf(p.id))}</b></div>
+        <div class="stat"><span class="label">Last studied</span><b style="font-size:16px">${logs[0] ? fmtShort(logs[0].date) : '—'}</b></div>
+      </div>
+      ${weeks}
+      <section class="panel"><div class="panel-head"><h3>Milestones <span class="muted num" style="font-weight:400">${done}/${total}</span></h3><button class="btn ghost small" data-act="add-ms">Add milestone</button></div>${msHtml}</section>
+      <section class="panel"><div class="panel-head"><h3>Study sessions</h3><button class="btn small" data-act="log">Log a session</button></div>${logHtml}</section>
+      <section class="confirm">${state.confirm === 'prog'
+        ? `<span>Delete this programme and its milestones? Logged sessions stay in your weekly totals.</span><button class="btn danger small" data-act="prog-del">Delete programme</button><button class="linkbtn" data-act="cancel">Keep it</button>`
+        : `<button class="linkbtn" data-act="prog-ask">Delete programme</button>`}</section>`;
+  }
+
+  function render() { state.view === 'detail' ? renderDetail() : renderHome(); }
+
+  /* ---------- sheets ---------- */
+  function openSheet(html, onSubmit) {
+    sheetRoot.innerHTML = `<div class="scrim" data-sheet-close="1"><form class="sheet" role="dialog" aria-modal="true" novalidate>${html}<p class="err" id="sheet-err" hidden></p></form></div>`;
+    const form = sheetRoot.querySelector('form');
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const err = onSubmit(form);
+      if (typeof err === 'string') { const el = form.querySelector('#sheet-err'); el.textContent = err; el.hidden = false; return; }
+      closeSheet();
+    });
+  }
+  function closeSheet() { sheetRoot.innerHTML = ''; }
+  sheetRoot.addEventListener('click', e => {
+    if (e.target.dataset.sheetClose) closeSheet();
+    const chip = e.target.closest('[data-min]');
+    if (chip) {
+      chip.parentElement.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b === chip ? 'true' : 'false'));
+      const inp = sheetRoot.querySelector('#log-minutes'); if (inp) inp.value = chip.dataset.min;
+    }
+    if (e.target.dataset.act === 'sheet-cancel') closeSheet();
+  });
+
+  function parseMilestones(text) {
+    return text.split('\n').map(s => s.trim()).filter(Boolean).map((line, i) => {
+      const m = line.match(/^(?:w(?:ee)?k?\s*)?(\d{1,3})\s*[:.\-–—|)]\s*(.+)$/i);
+      return m ? { id: uid(), week: Number(m[1]), text: m[2].trim(), done: false, order: i } : { id: uid(), week: null, text: line, done: false, order: i };
+    });
+  }
+
+  function newProgrammeSheet() {
+    openSheet(`<h2>New programme</h2>
+      <label class="field"><span>Name</span><input id="np-name" required placeholder="e.g. n8n Integrations course"></label>
+      <div class="row2"><label class="field"><span>Provider</span><input id="np-provider" placeholder="e.g. learn.n8n.io"></label>
+      <label class="field"><span>Course link</span><input id="np-url" type="url" inputmode="url" placeholder="https://"></label></div>
+      <div class="row2"><label class="field"><span>Start date</span><input id="np-start" type="date" value="${today()}"></label>
+      <label class="field"><span>Length in weeks</span><input id="np-weeks" type="number" min="0" max="104" inputmode="numeric" placeholder="Blank = self-paced"></label></div>
+      <label class="field"><span>Milestones</span><small>One per line. Start with a week number to schedule it, e.g. "3: Finish the API module".</small><textarea id="np-ms" placeholder="1: Complete module one&#10;2: Build the first project&#10;Final assessment"></textarea></label>
+      <div class="actions"><button type="button" class="btn ghost" data-act="sheet-cancel">Cancel</button><button class="btn" type="submit">Add programme</button></div>`, form => {
+      const name = form.querySelector('#np-name').value.trim();
+      if (!name) return 'Give the programme a name.';
+      const url = form.querySelector('#np-url').value.trim();
+      if (url && !/^https?:\/\//i.test(url)) return 'The course link must start with https://';
+      const weeks = parseInt(form.querySelector('#np-weeks').value, 10);
+      const p = { id: uid(), name, provider: form.querySelector('#np-provider').value.trim(), url, start: form.querySelector('#np-start').value || today(),
+        weeks: weeks > 0 ? weeks : 0, status: 'active', created: new Date().toISOString(), phases: [], milestones: parseMilestones(form.querySelector('#np-ms').value) };
+      data.programmes.push(p); save();
+      state.view = 'detail'; state.pid = p.id; render(); window.scrollTo(0, 0); toast('Programme added');
+    });
+  }
+
+  function addMilestoneSheet(p) {
+    const wi = weekInfo(p);
+    openSheet(`<h2>Add milestone</h2>
+      <label class="field"><span>What marks progress?</span><input id="am-text" required placeholder="e.g. Call two public APIs from n8n"></label>
+      <label class="field"><span>Week</span><input id="am-week" type="number" min="1" max="${p.weeks || 104}" inputmode="numeric" value="${wi && wi.week ? wi.week : ''}" placeholder="Optional"></label>
+      <div class="actions"><button type="button" class="btn ghost" data-act="sheet-cancel">Cancel</button><button class="btn" type="submit">Add</button></div>`, form => {
+      const text = form.querySelector('#am-text').value.trim();
+      if (!text) return 'Describe the milestone.';
+      const w = parseInt(form.querySelector('#am-week').value, 10);
+      p.milestones = [...msOf(p), { id: uid(), week: w > 0 ? w : null, text, done: false, order: msOf(p).length }];
+      save(); render();
+    });
+  }
+
+  function logSheet(p) {
+    openSheet(`<h2>Log a session</h2><p class="muted" style="margin:0">${esc(p.name)}</p>
+      <div class="row2"><label class="field"><span>Date</span><input id="log-date" type="date" value="${today()}" max="${today()}"></label>
+      <label class="field"><span>Minutes</span><input id="log-minutes" type="number" min="5" max="720" step="5" inputmode="numeric" value="60"></label></div>
+      <div class="chips" aria-label="Quick durations">${[30, 60, 90, 120, 180].map(m => `<button type="button" data-min="${m}" aria-pressed="${m === 60}">${m < 60 ? m + ' min' : hrs(m)}</button>`).join('')}</div>
+      <label class="field"><span>What did you work on?</span><input id="log-note" placeholder="e.g. Built the lead capture workflow"></label>
+      <div class="actions"><button type="button" class="btn ghost" data-act="sheet-cancel">Cancel</button><button class="btn" type="submit">Save session</button></div>`, form => {
+      const minutes = parseInt(form.querySelector('#log-minutes').value, 10);
+      if (!(minutes > 0)) return 'Enter how many minutes you studied.';
+      data.logs.push({ id: uid(), pid: p.id, date: form.querySelector('#log-date').value || today(), minutes, note: form.querySelector('#log-note').value.trim(), created: new Date().toISOString() });
+      save(); render(); toast('Session logged · ' + hrs(minutes));
+    });
+  }
+
+  /* ---------- backup ---------- */
+  async function exportBackup() {
+    const json = JSON.stringify({ app: 'study-ledger', version: 1, exportedAt: new Date().toISOString(), programmes: data.programmes, logs: data.logs }, null, 2);
+    const name = 'study-ledger-backup-' + today() + '.json';
+    const file = new File([json], name, { type: 'application/json' });
+    try {
+      if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Study Ledger backup' }); return; }
+    } catch (e) { if (e && e.name === 'AbortError') return; }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(file); a.download = name; document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  }
+  const importInput = document.getElementById('import-file');
+  importInput.addEventListener('change', () => {
+    const f = importInput.files && importInput.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const d = JSON.parse(r.result);
+        if (!d || !Array.isArray(d.programmes)) throw new Error('shape');
+        state.pendingImport = d; state.view = 'home';
+        openSheet(`<h2>Restore this backup?</h2><p class="muted" style="margin:0">It holds ${d.programmes.length} programme${d.programmes.length === 1 ? '' : 's'} and ${(d.logs || []).length} logged session${(d.logs || []).length === 1 ? '' : 's'}. It replaces everything currently in Study Ledger.</p>
+          <div class="actions"><button type="button" class="btn ghost" data-act="sheet-cancel">Cancel</button><button class="btn" type="submit">Replace and restore</button></div>`, () => {
+          data.programmes = state.pendingImport.programmes; data.logs = Array.isArray(state.pendingImport.logs) ? state.pendingImport.logs : [];
+          state.pendingImport = null; save(); render(); toast('Backup restored');
+        });
+      } catch (_) { toast('That file is not a Study Ledger backup.'); }
+      importInput.value = '';
+    };
+    r.readAsText(f);
+  });
+
+  /* ---------- events ---------- */
+  main.addEventListener('click', e => {
+    const t = e.target.closest('[data-act]');
+    if (!t) return;
+    const act = t.dataset.act, p = data.programmes.find(x => x.id === state.pid);
+    if (act === 'open') { state.view = 'detail'; state.pid = t.dataset.id; state.confirm = null; render(); window.scrollTo(0, 0); }
+    else if (act === 'home') { state.view = 'home'; state.confirm = null; render(); window.scrollTo(0, 0); }
+    else if (act === 'new') newProgrammeSheet();
+    else if (act === 'add-ms' && p) addMilestoneSheet(p);
+    else if (act === 'log' && p) logSheet(p);
+    else if (act === 'export') exportBackup();
+    else if (act === 'import') importInput.click();
+    else if (act === 'cancel') { state.confirm = null; render(); }
+    else if (act === 'ms-ask') { state.confirm = 'ms:' + t.dataset.mid; render(); }
+    else if (act === 'ms-del' && p) { state.confirm = null; p.milestones = msOf(p).filter(m => m.id !== t.dataset.mid); save(); render(); }
+    else if (act === 'log-ask') { state.confirm = 'log:' + t.dataset.lid; render(); }
+    else if (act === 'log-del') { state.confirm = null; data.logs = data.logs.filter(l => l.id !== t.dataset.lid); save(); render(); }
+    else if (act === 'prog-ask') { state.confirm = 'prog'; render(); }
+    else if (act === 'prog-del' && p) { data.programmes = data.programmes.filter(x => x.id !== p.id); state.view = 'home'; state.confirm = null; save(); render(); toast('Programme deleted'); }
+  });
+  main.addEventListener('change', e => {
+    const t = e.target, p = data.programmes.find(x => x.id === state.pid);
+    if (!p) return;
+    if (t.dataset.act === 'tick') {
+      p.milestones = msOf(p).map(m => m.id === t.dataset.mid ? { ...m, done: t.checked, doneAt: t.checked ? today() : null } : m);
+      save(); render();
+      if (t.checked && p.milestones.every(m => m.done)) toast('Every milestone done. Well earned.');
+    }
+    if (t.dataset.act === 'status') { p.status = t.value; save(); render(); }
+  });
+
+  let toastTimer;
+  function toast(msg) {
+    const root = document.getElementById('toast-root');
+    root.innerHTML = `<div class="toast" role="status">${esc(msg)}</div>`;
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => { root.innerHTML = ''; }, 2600);
+  }
+
+  /* re-render when reopened on a new day, so "this week" stays current */
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && !sheetRoot.innerHTML) render(); });
+
+  render();
+  if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+})();
+</script>
+</body>
+</html>
