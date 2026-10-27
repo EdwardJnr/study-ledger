@@ -23,6 +23,7 @@
   --brand: #0F4C3A; --primary: #0F4C3A; --on-primary: #FFFFFF; --accent: #2FD79A; --accent-soft: #DDF5EA;
   --track: #DCE6E1; --warn: #B26A00; --danger: #B3261E; --scrim: rgba(8, 20, 16, 0.42);
   --bar: #0F4C3A;
+  --brand-fill: #0F4C3A; --on-brand: #FFFFFF; --on-brand-muted: #A9D9C4; --on-brand-line: rgba(255,255,255,0.16);
   --display: "Fraunces", Georgia, "Times New Roman", serif;
   --body: "Helvetica Neue", Helvetica, Arial, sans-serif;
   --r: 14px;
@@ -34,6 +35,7 @@
     --brand: #8FE9C5; --primary: #2FD79A; --on-primary: #06231A; --accent: #2FD79A;
     --accent-soft: #14382B; --track: #1C2F28; --warn: #E8A33D; --danger: #F2867F;
     --scrim: rgba(0, 0, 0, 0.6); --bar: #09130F; color-scheme: dark;
+    --brand-fill: #0F4C3A; --on-brand: #FFFFFF; --on-brand-muted: #A9D9C4; --on-brand-line: rgba(255,255,255,0.16);
   }
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -121,6 +123,24 @@ button { cursor: pointer; }
 .empty { color: var(--muted); font-size: 14px; margin: 0; }
 .confirm { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 14px; }
 
+.now-card { background: var(--brand-fill); color: var(--on-brand); border-radius: var(--r); padding: 18px; display: grid; gap: 10px; }
+.now-card .label, .now-card .muted { color: var(--on-brand-muted); }
+.now-card h2 { font-family: var(--display); font-weight: 600; font-size: 21px; line-height: 1.25; }
+.now-card .row { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.now-card .btn { background: var(--accent); color: #06231A; }
+.now-card .btn.ghost { background: transparent; color: var(--on-brand); border: 1px solid var(--on-brand-muted); }
+.now-card .linkbtn { color: var(--on-brand-muted); }
+.now-card.running { outline: 2px solid var(--accent); outline-offset: -2px; }
+.queue { display: grid; border-top: 1px solid var(--on-brand-line); margin-top: 4px; }
+.q-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--on-brand-line); font-size: 14px; }
+.q-row:last-child { border-bottom: 0; }
+.q-row > span { min-width: 0; }
+.q-row .btn { flex: none; background: transparent; color: var(--on-brand); border: 1px solid var(--on-brand-muted); }
+a.btn { text-decoration: none; display: inline-block; }
+.ms-study { display: block; margin-top: 6px; }
+.ms-study .btn { padding: 5px 12px; font-size: 13px; }
+.tick-row { display: flex; gap: 10px; align-items: center; font-size: 15px; }
+.tick-row input { width: 22px; height: 22px; accent-color: var(--primary); }
 .blank { background: var(--surface); border: 1px dashed var(--line); border-radius: var(--r); padding: 28px 20px; text-align: center; display: grid; gap: 10px; justify-items: center; }
 .blank h2 { font-family: var(--display); font-size: 22px; }
 .blank p { margin: 0; }
@@ -183,48 +203,119 @@ details.help ol { padding-left: 20px; margin: 8px 0 0; display: grid; gap: 4px; 
   const hrs = min => { const h = min / 60; return (h % 1 === 0 ? h.toFixed(0) : h.toFixed(1)) + ' h'; };
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
-  /* ---------- starting data, used only on first open ---------- */
-  const SEED = () => ({
-    programmes: [
-      { id: 'ai-automation-consultant', name: 'AI Automation Consultant', provider: '12-week study plan',
-        url: 'https://claude.ai/artifact/MPxoPU9EJV7zWSEY9nyk7b', start: '2026-10-26', weeks: 12, status: 'active', created: '2026-10-26T20:20:00Z',
-        phases: [{ name: 'Foundations', from: 1, to: 4 }, { name: 'AI and agents', from: 5, to: 8 }, { name: 'Clients and offer', from: 9, to: 12 }],
-        milestones: [
-          'n8n running locally; three processes mapped with hours per month',
-          'Workflow 1 (lead capture) live in testing',
-          'Two public APIs called by hand from n8n',
-          'Workflow 2 (weekly report) running on schedule',
-          'Workflow 3 (enquiry triage) sorting ten test enquiries correctly',
-          'Triage upgraded to an agent with a price-list tool',
-          'Workflow 4 (repurposing) with a working error branch',
-          'Best workflow self-hosted on a VPS; Workflow 5 built; all five documented',
-          'Two pilot clients agreed',
-          'Audits delivered; one workflow signed off per client',
-          'Client workflows live for seven days unattended',
-          'Two case studies published; audit, build and retainer prices set'
-        ].map((text, i) => ({ id: 'm' + pad(i + 1), week: i + 1, text, done: false, order: i })) },
-      { id: 'ga4-certification', name: 'Google Analytics 4 Certification', provider: 'Google Skillshop', url: '',
-        start: '2026-10-01', weeks: 0, status: 'active', created: '2026-10-01T08:00:00Z', phases: [],
-        milestones: ['Get Started with GA4', 'Dive Deeper Into GA4 Data and Reports', 'Manage GA4 Data', 'Use GA4 with Other Tools', 'GA4 Certification exam']
-          .map((text, i) => ({ id: 'g' + (i + 1), week: null, text, done: i === 0, doneAt: i === 0 ? '2026-10-01' : null, order: i })) }
-    ],
-    logs: []
-  });
+  /* ---------- course content. New items are merged in on open; your ticks and logs are never touched ---------- */
+  const CONTENT_VERSION = 2;
+  const L = {
+    n101: 'https://learn.n8n.io/courses/course-v1:n8n+N8N101+2026H2/about',
+    n102: 'https://learn.n8n.io/courses/course-v1:n8n+N8N102+2026H2/about',
+    n103: 'https://learn.n8n.io/courses/course-v1:n8n+N8N103+2026H2/about',
+    cloud: 'https://n8n.io/pricing/',
+    docs: 'https://docs.n8n.io/',
+    hosting: 'https://docs.n8n.io/hosting/',
+    prompts: 'https://docs.claude.com/en/docs/build-with-claude/prompt-engineering/overview',
+    plan: 'https://claude.ai/artifact/MPxoPU9EJV7zWSEY9nyk7b',
+    groq: 'https://console.groq.com/',
+    skillshop: 'https://skillshop.withgoogle.com/'
+  };
+  const mk = (prefix, rows, doneFirst) => rows.map(([week, text, link, mins], i) =>
+    ({ id: prefix + pad(i + 1), week, text, link: link || '', mins: mins || 0, done: false, order: i }));
+  const CONTENT = () => [
+    { id: 'ai-automation-consultant', name: 'AI Automation Consultant', provider: '12-week study plan',
+      url: L.plan, start: '2026-10-26', weeks: 12, status: 'active', created: '2026-10-26T20:20:00Z',
+      phases: [{ name: 'Foundations', from: 1, to: 4 }, { name: 'AI and agents', from: 5, to: 8 }, { name: 'Clients and offer', from: 9, to: 12 }],
+      milestones: [
+        [1, 'n8n running (Cloud trial or public instance); three processes mapped with hours per month', L.cloud],
+        [2, 'Workflow 1 (lead capture) live in testing', L.docs],
+        [3, 'Two public APIs called by hand from n8n', L.n102],
+        [4, 'Workflow 2 (weekly report) running on schedule', L.docs],
+        [5, 'Workflow 3 (enquiry triage) sorting ten test enquiries correctly', L.prompts],
+        [6, 'Triage upgraded to an agent with a price-list tool', L.n103],
+        [7, 'Workflow 4 (repurposing) with a working error branch', L.docs],
+        [8, 'Best workflow self-hosted on a VPS; Workflow 5 built; all five documented', L.hosting],
+        [9, 'Two pilot clients agreed', L.plan],
+        [10, 'Audits delivered; one workflow signed off per client', L.plan],
+        [11, 'Client workflows live for seven days unattended', L.plan],
+        [12, 'Two case studies published; audit, build and retainer prices set', L.plan]
+      ].map(([week, text, link], i) => ({ id: 'm' + pad(i + 1), week, text, link, done: false, order: i })) },
+    { id: 'n8n-101', name: 'n8n Essentials: Your First Workflows', provider: 'n8n Academy · N8N101 · 2–4 h',
+      url: L.n101, start: '2026-10-26', weeks: 2, status: 'active', created: '2026-10-26T20:21:00Z', phases: [],
+      milestones: mk('a', [
+        [1, 'Set up a publicly reachable n8n instance (n8n Cloud free trial is simplest)', L.cloud, 30],
+        [1, 'Register on n8n Academy and enrol in N8N101', L.n101, 10],
+        [1, 'Section 1: Getting started (interface, triggers, credentials, first workflow, scheduling)', L.n101, 60],
+        [1, 'Section 1 quiz and workflow exercises', L.n101, 30],
+        [2, 'Section 2: Data flow and transformation (data structures, expressions, binary data)', L.n101, 60],
+        [2, 'Section 2 quiz and workflow exercises', L.n101, 30],
+        [2, 'Final exam (70% to pass)', L.n101, 30]
+      ]) },
+    { id: 'n8n-102', name: 'n8n Integrations: APIs & Connected Workflows', provider: 'n8n Academy · N8N102 · 4–6 h',
+      url: L.n102, start: '2026-11-09', weeks: 2, status: 'active', created: '2026-10-26T20:22:00Z', phases: [],
+      milestones: mk('b', [
+        [1, 'Section 1: Workflow execution and logic (IF, Switch, loops, sub-workflows, error handling)', L.n102, 90],
+        [1, 'Section 1 quiz and workflow exercises', L.n102, 45],
+        [2, 'Section 2: APIs, authentication and integration patterns (HTTP Request, webhooks, pagination)', L.n102, 90],
+        [2, 'Section 2 quiz and final integration project', L.n102, 60],
+        [2, 'Final exam (70% to pass)', L.n102, 30]
+      ]) },
+    { id: 'n8n-103', name: 'n8n In Practice: AI, Testing & Best Practices', provider: 'n8n Academy · N8N103 · 3–4 h',
+      url: L.n103, start: '2026-11-23', weeks: 4, status: 'active', created: '2026-10-26T20:23:00Z', phases: [],
+      milestones: mk('c', [
+        [1, 'Get a free Groq API key for the AI exercises', L.groq, 10],
+        [1, 'Section 1: AI introduction (AI nodes, the Agent node, AI best practices)', L.n103, 75],
+        [2, 'Read the Claude prompt engineering guide alongside your AI builds', L.prompts, 45],
+        [2, 'Section 2: Testing and debugging (error handling, development practice)', L.n103, 60],
+        [3, 'Section 3: Workflow organisation and production readiness', L.n103, 60],
+        [4, 'Final exam (70% to pass)', L.n103, 30]
+      ]) },
+    { id: 'ga4-certification', name: 'Google Analytics 4 Certification', provider: 'Google Skillshop', url: L.skillshop,
+      start: '2026-10-01', weeks: 0, status: 'active', created: '2026-10-01T08:00:00Z', phases: [],
+      milestones: ['Get Started with GA4', 'Dive Deeper Into GA4 Data and Reports', 'Manage GA4 Data', 'Use GA4 with Other Tools', 'GA4 Certification exam']
+        .map((text, i) => ({ id: 'g' + (i + 1), week: null, text, link: L.skillshop, done: i === 0, doneAt: i === 0 ? '2026-10-01' : null, order: i })) }
+  ];
+
+  /* merge content into saved data: add missing programmes and milestones, refresh links and wording, keep every tick */
+  function applyContent(d) {
+    const deleted = new Set(d.deletedIds || []);
+    for (const cp of CONTENT()) {
+      if (deleted.has(cp.id)) continue;
+      const p = d.programmes.find(x => x.id === cp.id);
+      if (!p) { d.programmes.push(cp); continue; }
+      if (!p.url) p.url = cp.url;
+      p.milestones = Array.isArray(p.milestones) ? p.milestones : [];
+      for (const cm of cp.milestones) {
+        if (deleted.has(p.id + '/' + cm.id)) continue;
+        const m = p.milestones.find(x => x.id === cm.id);
+        if (!m) p.milestones.push(cm);
+        else { m.link = cm.link; if (cm.mins) m.mins = cm.mins; if (!m.edited) m.text = cm.text; }
+      }
+    }
+    d.contentVersion = CONTENT_VERSION;
+    return d;
+  }
 
   /* ---------- storage on this phone ---------- */
   let storageOk = true;
   function load() {
     try {
       const raw = localStorage.getItem(KEY);
-      if (raw) { const d = JSON.parse(raw); if (d && Array.isArray(d.programmes)) return { programmes: d.programmes, logs: Array.isArray(d.logs) ? d.logs : [] }; }
-      const seed = SEED(); localStorage.setItem(KEY, JSON.stringify(seed)); return seed;
-    } catch (_) { storageOk = false; return SEED(); }
+      let d = raw ? JSON.parse(raw) : null;
+      if (!d || !Array.isArray(d.programmes)) d = { programmes: [], logs: [] };
+      if (!Array.isArray(d.logs)) d.logs = [];
+      if ((d.contentVersion || 1) < CONTENT_VERSION) { applyContent(d); localStorage.setItem(KEY, JSON.stringify(d)); }
+      return d;
+    } catch (_) { storageOk = false; return applyContent({ programmes: [], logs: [] }); }
   }
   const data = load();
   function save() {
-    try { localStorage.setItem(KEY, JSON.stringify({ programmes: data.programmes, logs: data.logs, savedAt: new Date().toISOString() })); }
+    try { localStorage.setItem(KEY, JSON.stringify({ programmes: data.programmes, logs: data.logs, contentVersion: data.contentVersion, deletedIds: data.deletedIds || [], savedAt: new Date().toISOString() })); }
     catch (_) { storageOk = false; toast('This change could not be saved on the phone. Export a backup now.'); }
   }
+
+  /* ---------- running study session ---------- */
+  const SKEY = 'study-ledger-session';
+  const getSession = () => { try { return JSON.parse(localStorage.getItem(SKEY) || 'null'); } catch (_) { return null; } };
+  const setSession = s => { try { s ? localStorage.setItem(SKEY, JSON.stringify(s)) : localStorage.removeItem(SKEY); } catch (_) {} };
+  const elapsedMin = s => Math.max(1, Math.round((Date.now() - s.start) / 60000));
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 
   const state = { view: 'home', pid: null, confirm: null };
@@ -279,6 +370,46 @@ details.help ol { padding-left: 20px; margin: 8px 0 0; display: grid; gap: 4px; 
     </section>`;
   }
 
+  /* what to study now: this week's and overdue milestones across active programmes, then the next self-paced step */
+  const weekStart = (p, w) => { const d = new Date(p.start + 'T00:00:00'); d.setDate(d.getDate() + (w - 1) * 7); return iso(d); };
+  function todayQueue() {
+    const t = today(), out = [];
+    for (const p of data.programmes) {
+      if ((p.status || 'active') !== 'active') continue;
+      const undone = msOf(p).filter(m => !m.done).sort((a, b) => (a.week ?? 999) - (b.week ?? 999) || (a.order ?? 0) - (b.order ?? 0));
+      if (p.weeks) undone.filter(m => m.week && weekStart(p, m.week) <= t).forEach(m => out.push({ p, m, due: weekStart(p, m.week) }));
+      else if (undone[0]) out.push({ p, m: undone[0], due: '9999' });
+    }
+    return out.sort((a, b) => a.due.localeCompare(b.due) || (a.m.order ?? 0) - (b.m.order ?? 0));
+  }
+  function studyButton(p, m, label) {
+    const attrs = `data-act="study" data-pid="${esc(p.id)}" data-mid="${esc(m.id)}"`;
+    return m.link || p.url
+      ? `<a class="btn small" href="${esc(m.link || p.url)}" target="_blank" rel="noopener" ${attrs}>${label}</a>`
+      : `<button class="btn small" ${attrs}>${label}</button>`;
+  }
+  function sessionCard() {
+    const s = getSession(); if (!s) return '';
+    const p = data.programmes.find(x => x.id === s.pid), m = p && msOf(p).find(x => x.id === s.mid);
+    return `<section class="now-card running"><span class="label">Studying now · <span class="num">${elapsedMin(s)} min</span></span>
+      <h2>${esc(m ? m.text : (p ? p.name : 'Study session'))}</h2>
+      ${p ? `<span class="muted" style="font-size:13px">${esc(p.name)}</span>` : ''}
+      <div class="row">${m && (m.link || p.url) ? `<a class="btn ghost small" href="${esc(m.link || p.url)}" target="_blank" rel="noopener">Back to the lesson</a>` : ''}
+      <button class="btn small" data-act="finish">Finish and log</button><button class="linkbtn" data-act="discard">Discard</button></div></section>`;
+  }
+  function todayCard() {
+    if (getSession()) return '';
+    const q = todayQueue();
+    if (!q.length) return data.programmes.length ? `<section class="now-card"><span class="label">Up next</span><h2>Nothing due right now</h2><span class="muted" style="font-size:14px">You're up to date. Open a programme to work ahead.</span></section>` : '';
+    const [first, ...rest] = q;
+    return `<section class="now-card"><span class="label">Study now${first.p.weeks && first.m.week ? ` · ${esc(first.p.name.split(':')[0])} week ${first.m.week}` : ''}</span>
+      <h2>${esc(first.m.text)}</h2>
+      <span class="muted" style="font-size:13px">${esc(first.p.name)}${first.m.mins ? ` · about ${first.m.mins} min` : ''}</span>
+      <div class="row">${studyButton(first.p, first.m, 'Start studying')}<button class="linkbtn" data-act="quick-done" data-pid="${esc(first.p.id)}" data-mid="${esc(first.m.id)}">Already done</button></div>
+      ${rest.length ? `<div class="queue">${rest.slice(0, 4).map(({ p, m }) => `<div class="q-row"><span><span class="muted" style="font-size:12px;display:block">${esc(p.name.split(':')[0])}${m.week ? ' · week ' + m.week : ''}</span>${esc(m.text)}</span>${studyButton(p, m, 'Study')}</div>`).join('')}${rest.length > 4 ? `<span class="muted" style="font-size:13px">and ${rest.length - 4} more this week</span>` : ''}</div>` : ''}
+    </section>`;
+  }
+
   function renderHome() {
     let body;
     if (!data.programmes.length) {
@@ -288,7 +419,7 @@ details.help ol { padding-left: 20px; margin: 8px 0 0; display: grid; gap: 4px; 
       const ps = [...data.programmes].sort((a, b) => (order[a.status || 'active'] - order[b.status || 'active']) || String(a.created || '').localeCompare(String(b.created || '')));
       body = `<div class="list">${ps.map(progCard).join('')}</div>`;
     }
-    main.innerHTML = header() + body + tools() + (data.programmes.length ? `<button class="btn fab" data-act="new">+ New programme</button>` : '');
+    main.innerHTML = header() + sessionCard() + todayCard() + body + tools() + (data.programmes.length ? `<button class="btn fab" data-act="new">+ New programme</button>` : '');
   }
 
   function renderDetail() {
@@ -328,7 +459,7 @@ details.help ol { padding-left: 20px; margin: 8px 0 0; display: grid; gap: 4px; 
       const sub = m.week ? `Week ${m.week}${m.done && m.doneAt ? ' · done ' + fmtShort(m.doneAt) : ''}` : (m.done && m.doneAt ? `Done ${fmtShort(m.doneAt)}` : '');
       return `<div class="ms ${m.done ? 'is-done' : ''} ${m.week && m.week === curWeek && !m.done ? 'now-week' : ''}">
         <input type="checkbox" id="m-${esc(m.id)}" data-act="tick" data-mid="${esc(m.id)}" ${m.done ? 'checked' : ''}>
-        <label for="m-${esc(m.id)}">${sub ? `<span class="wkl num">${sub}</span>` : ''}<span class="t">${esc(m.text)}</span></label>
+        <label for="m-${esc(m.id)}">${sub ? `<span class="wkl num">${sub}</span>` : ''}<span class="t">${esc(m.text)}</span>${!m.done && (m.link || p.url) ? `<span class="ms-study">${studyButton(p, m, 'Study')}</span>` : ''}</label>
         ${confirming
           ? `<span class="confirm"><button class="btn danger small" data-act="ms-del" data-mid="${esc(m.id)}">Remove</button><button class="linkbtn" data-act="cancel">Keep</button></span>`
           : `<button class="x" aria-label="Remove milestone" data-act="ms-ask" data-mid="${esc(m.id)}">×</button>`}
@@ -347,7 +478,7 @@ details.help ol { padding-left: 20px; margin: 8px 0 0; display: grid; gap: 4px; 
           : `<b>${hrs(Number(l.minutes) || 0)}</b><button class="x" aria-label="Delete session" data-act="log-ask" data-lid="${esc(l.id)}">×</button>`}</span></div>`;
     }).join('')}</div>` : `<p class="empty">No sessions logged yet. Log each sitting to see where your hours go.</p>`;
 
-    main.innerHTML = header() + `
+    main.innerHTML = header() + sessionCard() + `
       <div><button class="linkbtn" data-act="home">← All programmes</button></div>
       <section class="d-head">
         <h1>${esc(p.name)}</h1>
@@ -449,9 +580,29 @@ details.help ol { padding-left: 20px; margin: 8px 0 0; display: grid; gap: 4px; 
     });
   }
 
+  function finishSheet() {
+    const s = getSession(); if (!s) return render();
+    const p = data.programmes.find(x => x.id === s.pid), m = p && msOf(p).find(x => x.id === s.mid);
+    const mins = Math.min(240, Math.max(5, Math.round(elapsedMin(s) / 5) * 5));
+    openSheet(`<h2>Log this session</h2><p class="muted" style="margin:0">${esc(p ? p.name : '')}</p>
+      <div class="row2"><label class="field"><span>Date</span><input id="fs-date" type="date" value="${today()}" max="${today()}"></label>
+      <label class="field"><span>Minutes</span><input id="fs-minutes" type="number" min="5" max="720" step="5" inputmode="numeric" value="${mins}"></label></div>
+      <label class="field"><span>What did you work on?</span><input id="fs-note" value="${esc(m ? m.text : '')}"></label>
+      ${m && !m.done ? `<label class="tick-row"><input type="checkbox" id="fs-done" checked> <span>I finished this milestone</span></label>` : ''}
+      <div class="actions"><button type="button" class="btn ghost" data-act="sheet-cancel">Keep studying</button><button class="btn" type="submit">Save session</button></div>`, form => {
+      const minutes = parseInt(form.querySelector('#fs-minutes').value, 10);
+      if (!(minutes > 0)) return 'Enter how many minutes you studied.';
+      if (p) data.logs.push({ id: uid(), pid: p.id, date: form.querySelector('#fs-date').value || today(), minutes, note: form.querySelector('#fs-note').value.trim(), created: new Date().toISOString() });
+      const doneBox = form.querySelector('#fs-done');
+      if (m && doneBox && doneBox.checked) { m.done = true; m.doneAt = today(); }
+      setSession(null); save(); render();
+      toast(doneBox && doneBox.checked ? 'Logged ' + hrs(minutes) + ' and ticked off' : 'Logged ' + hrs(minutes));
+    });
+  }
+
   /* ---------- backup ---------- */
   async function exportBackup() {
-    const json = JSON.stringify({ app: 'study-ledger', version: 1, exportedAt: new Date().toISOString(), programmes: data.programmes, logs: data.logs }, null, 2);
+    const json = JSON.stringify({ app: 'study-ledger', version: 1, exportedAt: new Date().toISOString(), programmes: data.programmes, logs: data.logs, contentVersion: data.contentVersion, deletedIds: data.deletedIds || [] }, null, 2);
     const name = 'study-ledger-backup-' + today() + '.json';
     const file = new File([json], name, { type: 'application/json' });
     try {
@@ -473,7 +624,10 @@ details.help ol { padding-left: 20px; margin: 8px 0 0; display: grid; gap: 4px; 
         state.pendingImport = d; state.view = 'home';
         openSheet(`<h2>Restore this backup?</h2><p class="muted" style="margin:0">It holds ${d.programmes.length} programme${d.programmes.length === 1 ? '' : 's'} and ${(d.logs || []).length} logged session${(d.logs || []).length === 1 ? '' : 's'}. It replaces everything currently in Study Ledger.</p>
           <div class="actions"><button type="button" class="btn ghost" data-act="sheet-cancel">Cancel</button><button class="btn" type="submit">Replace and restore</button></div>`, () => {
-          data.programmes = state.pendingImport.programmes; data.logs = Array.isArray(state.pendingImport.logs) ? state.pendingImport.logs : [];
+          const b = state.pendingImport;
+          data.programmes = b.programmes; data.logs = Array.isArray(b.logs) ? b.logs : [];
+          data.deletedIds = Array.isArray(b.deletedIds) ? b.deletedIds : []; data.contentVersion = b.contentVersion || 1;
+          if (data.contentVersion < CONTENT_VERSION) applyContent(data);
           state.pendingImport = null; save(); render(); toast('Backup restored');
         });
       } catch (_) { toast('That file is not a Study Ledger backup.'); }
@@ -496,11 +650,23 @@ details.help ol { padding-left: 20px; margin: 8px 0 0; display: grid; gap: 4px; 
     else if (act === 'import') importInput.click();
     else if (act === 'cancel') { state.confirm = null; render(); }
     else if (act === 'ms-ask') { state.confirm = 'ms:' + t.dataset.mid; render(); }
-    else if (act === 'ms-del' && p) { state.confirm = null; p.milestones = msOf(p).filter(m => m.id !== t.dataset.mid); save(); render(); }
+    else if (act === 'study') {
+      const sp = data.programmes.find(x => x.id === t.dataset.pid);
+      setSession({ pid: t.dataset.pid, mid: t.dataset.mid, start: Date.now() });
+      if (sp && (sp.status || 'active') === 'paused') { sp.status = 'active'; save(); }
+      setTimeout(render, 50); /* the link itself opens the lesson */
+    }
+    else if (act === 'finish') finishSheet();
+    else if (act === 'discard') { setSession(null); render(); toast('Session discarded'); }
+    else if (act === 'quick-done') {
+      const sp = data.programmes.find(x => x.id === t.dataset.pid), m = sp && msOf(sp).find(x => x.id === t.dataset.mid);
+      if (m) { m.done = true; m.doneAt = today(); save(); render(); toast('Marked done'); }
+    }
+    else if (act === 'ms-del' && p) { state.confirm = null; data.deletedIds = [...(data.deletedIds || []), p.id + '/' + t.dataset.mid]; p.milestones = msOf(p).filter(m => m.id !== t.dataset.mid); save(); render(); }
     else if (act === 'log-ask') { state.confirm = 'log:' + t.dataset.lid; render(); }
     else if (act === 'log-del') { state.confirm = null; data.logs = data.logs.filter(l => l.id !== t.dataset.lid); save(); render(); }
     else if (act === 'prog-ask') { state.confirm = 'prog'; render(); }
-    else if (act === 'prog-del' && p) { data.programmes = data.programmes.filter(x => x.id !== p.id); state.view = 'home'; state.confirm = null; save(); render(); toast('Programme deleted'); }
+    else if (act === 'prog-del' && p) { data.deletedIds = [...(data.deletedIds || []), p.id]; data.programmes = data.programmes.filter(x => x.id !== p.id); state.view = 'home'; state.confirm = null; save(); render(); toast('Programme deleted'); }
   });
   main.addEventListener('change', e => {
     const t = e.target, p = data.programmes.find(x => x.id === state.pid);
@@ -521,7 +687,13 @@ details.help ol { padding-left: 20px; margin: 8px 0 0; display: grid; gap: 4px; 
   }
 
   /* re-render when reopened on a new day, so "this week" stays current */
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && !sheetRoot.innerHTML) render(); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden || sheetRoot.innerHTML) return;
+    render();
+    const s = getSession();
+    if (s && elapsedMin(s) >= 5 && s.prompted !== true) { s.prompted = true; setSession(s); finishSheet(); }
+  });
+  setInterval(() => { if (getSession() && !sheetRoot.innerHTML && !document.hidden) render(); }, 60000);
 
   render();
   if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));

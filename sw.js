@@ -1,5 +1,5 @@
 // Study Ledger service worker: keeps the app working offline.
-const VERSION = 'study-ledger-v1';
+const VERSION = 'study-ledger-v2';
 const SHELL = [
   './',
   './index.html',
